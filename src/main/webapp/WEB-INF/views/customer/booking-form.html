@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Book Services</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Cleaning Service</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customer/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/customer/services">Book Service</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customer/bookings">My Bookings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customer/profile">My Profile</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title">Booking Details</h3>
+                        
+                        <form th:action="@{/customer/bookings/create}" method="post" id="bookingForm">
+                            <!-- Hidden inputs for selected services -->
+                            <input type="hidden" name="services" th:each="service : ${selectedServices}" 
+                                   th:value="${service.serviceId}">
+                            
+                            <!-- Service Summary -->
+                            <div class="mb-4">
+                                <h5>Selected Services</h5>
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Service</th>
+                                                <th>Duration</th>
+                                                <th>Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr th:each="service : ${selectedServices}">
+                                                <td th:text="${service.name}">Service Name</td>
+                                                <td th:text="${service.durationHours + ' hours'}">3 hours</td>
+                                                <td th:text="'$' + ${#numbers.formatDecimal(service.basePrice, 1, 2)}">$100.00</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            
+                            <!-- Address Selection -->
+                            <div class="mb-3">
+                                <label for="addressId" class="form-label">Service Address</label>
+                                <select class="form-select" id="addressId" name="addressId" required>
+                                    <option value="">Select an address</option>
+                                    <option th:each="address : ${addresses}"
+                                            th:value="${address.addressId}"
+                                            th:text="${address.fullAddress}"
+                                            th:selected="${address.isPrimary}">
+                                        Address
+                                    </option>
+                                </select>
+                                <div class="mt-2">
+                                    <a href="/customer/addresses/new" class="btn btn-outline-primary btn-sm">
+                                        Add New Address
+                                    </a>
+                                </div>
+                            </div>
+                            
+                            <!-- Date and Time Selection -->
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="bookingDate" class="form-label">Service Date</label>
+                                    <input type="date" class="form-control" id="bookingDate" name="bookingDate" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="timeSlot" class="form-label">Preferred Time</label>
+                                    <select class="form-select" id="timeSlot" name="timeSlot" required>
+                                        <option value="">Select time</option>
+                                        <option value="09:00">9:00 AM</option>
+                                        <option value="10:00">10:00 AM</option>
+                                        <option value="11:00">11:00 AM</option>
+                                        <option value="13:00">1:00 PM</option>
+                                        <option value="14:00">2:00 PM</option>
+                                        <option value="15:00">3:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- Special Instructions -->
+                            <div class="mb-3">
+                                <label for="specialInstructions" class="form-label">Special Instructions</label>
+                                <textarea class="form-control" id="specialInstructions" name="specialInstructions" 
+                                          rows="3" placeholder="Any special requirements or instructions..."></textarea>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">Proceed to Payment</button>
+                            <a href="/customer/services" class="btn btn-outline-secondary">Back to Services</a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Order Summary</h5>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Subtotal</span>
+                            <span th:text="'$' + ${#numbers.formatDecimal(subtotal, 1, 2)}">$100.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>GST (8%)</span>
+                            <span th:text="'$' + ${#numbers.formatDecimal(gst, 1, 2)}">$8.00</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                            <strong>Total</strong>
+                            <strong th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}">$108.00</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script>
+        // Initialize date picker
+        flatpickr("#bookingDate", {
+            minDate: "today",
+            maxDate: new Date().fp_incr(30), // Allow booking up to 30 days in advance
+            disable: [
+                function(date) {
+                    // Disable Sundays
+                    return date.getDay() === 0;
+                }
+            ]
+        });
+        
+        // Form validation
+        document.getElementById('bookingForm').addEventListener('submit', function(e) {
+            const date = document.getElementById('bookingDate').value;
+            const time = document.getElementById('timeSlot').value;
+            const address = document.getElementById('addressId').value;
+            
+            if (!date || !time || !address) {
+                e.preventDefault();
+                alert('Please fill in all required fields');
+            }
+        });
+    </script>
+</body>
+</html>
