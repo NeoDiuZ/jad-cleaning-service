@@ -117,24 +117,61 @@
     <script>
         let selectedServices = new Map();
         
-        function addToBooking(button) {
+        async function addToBooking(button) {
             const serviceId = button.dataset.serviceId;
             const serviceName = button.dataset.serviceName;
             const price = parseFloat(button.dataset.servicePrice);
             
-            if (selectedServices.has(serviceId)) {
-                selectedServices.delete(serviceId);
-                button.classList.remove('btn-danger');
-                button.classList.add('btn-primary');
-                button.textContent = 'Select Service';
-            } else {
-                selectedServices.set(serviceId, { name: serviceName, price: price });
-                button.classList.remove('btn-primary');
-                button.classList.add('btn-danger');
-                button.textContent = 'Remove Service';
+            try {
+                if (selectedServices.has(serviceId)) {
+                    // Remove from cart
+                    const response = await fetch('/cart/remove', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `serviceId=${serviceId}`
+                    });
+                    
+                    if (response.ok) {
+                        selectedServices.delete(serviceId);
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-primary');
+                        button.textContent = 'Select Service';
+                    } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to remove service');
+                    }
+                } else {
+                    // Add to cart
+                    const response = await fetch('/cart/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `serviceId=${serviceId}`
+                    });
+                    
+                    if (response.ok) {
+                        const cartItem = await response.json();
+                        selectedServices.set(serviceId, {
+                            name: serviceName,
+                            price: price
+                        });
+                        button.classList.remove('btn-primary');
+                        button.classList.add('btn-danger');
+                        button.textContent = 'Remove Service';
+                    } else {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || 'Failed to add service');
+                    }
+                }
+                
+                updateBookingSummary();
+            } catch (error) {
+                console.error('Error updating cart:', error);
+                alert(error.message || 'An error occurred while updating your cart. Please try again.');
             }
-            
-            updateBookingSummary();
         }
         
         function updateBookingSummary() {
@@ -165,7 +202,7 @@
             proceedBtn.disabled = selectedServices.size === 0;
         }
         
-        function proceedToBooking() {
+        async function proceedToBooking() {
             const serviceIds = Array.from(selectedServices.keys());
             
             // Create a form to submit the selected services
@@ -185,6 +222,34 @@
             document.body.appendChild(form);
             form.submit();
         }
+
+        // Load cart items when page loads
+        window.addEventListener('DOMContentLoaded', async () => {
+		    try {
+		        const response = await fetch('/cart/items');
+		        if (response.ok) {
+		            const cartItems = await response.json();
+		            cartItems.forEach(item => {
+		                const button = document.querySelector(`[data-service-id="${item.serviceId}"]`);
+		                if (button) {
+		                    selectedServices.set(item.serviceId, {
+		                        name: item.serviceName,
+		                        price: parseFloat(item.price)
+		                    });
+		                    button.classList.remove('btn-primary');
+		                    button.classList.add('btn-danger');
+		                    button.textContent = 'Remove Service';
+		                }
+		            });
+		            updateBookingSummary();
+		        } else {
+		            const errorData = await response.json();
+		            console.error('Error from server:', errorData);
+		        }
+		    } catch (error) {
+		        console.error('Error loading cart:', error);
+		    }
+		});
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
