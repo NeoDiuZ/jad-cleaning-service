@@ -1,8 +1,5 @@
-<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <!DOCTYPE html>
-<html>
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Customer Dashboard</title>
@@ -18,23 +15,23 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link active" href="<c:url value='/customer/dashboard'/>">Dashboard</a>
+                        <a class="nav-link active" href="/customer/dashboard">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="<c:url value='/customer/services'/>">Book Service</a>
+                        <a class="nav-link" href="/customer/services">Book Service</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="<c:url value='/customer/bookings'/>">My Bookings</a>
+                        <a class="nav-link" href="/customer/bookings">My Bookings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="<c:url value='/customer/profile'/>">My Profile</a>
+                        <a class="nav-link" href="/customer/profile">My Profile</a>
                     </li>
                 </ul>
                 <div class="d-flex">
-                    <span class="navbar-text me-3">
-                        ${user.email}
+                    <span class="navbar-text me-3" th:text="${user != null ? user.email : ''}">
+                        User Email
                     </span>
-                    <form action="<c:url value='/auth/logout'/>" method="post">
+                    <form th:action="@{/auth/logout}" method="post">
                         <button class="btn btn-outline-light" type="submit">Logout</button>
                     </form>
                 </div>
@@ -43,15 +40,15 @@
     </nav>
 
     <div class="container mt-4">
-        <h2>Welcome, ${user.email}!</h2>
+        <h2>Welcome, <span th:text="${user != null ? user.email : 'User'}">User</span>!</h2>
         
         <div class="row mt-4">
             <div class="col-md-4">
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Active Bookings</h5>
-                        <p class="card-text">${activeBookingsCount}</p>
-                        <a href="<c:url value='/customer/bookings'/>" class="btn btn-primary">View Bookings</a>
+                        <p class="card-text" th:text="${activeBookingsCount}">0</p>
+                        <a href="/customer/bookings" class="btn btn-primary">View Bookings</a>
                     </div>
                 </div>
             </div>
@@ -60,8 +57,8 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Available Services</h5>
-                        <p class="card-text">${availableServicesCount}</p>
-                        <a href="<c:url value='/customer/services'/>" class="btn btn-primary">Book a Service</a>
+                        <p class="card-text" th:text="${availableServicesCount}">0</p>
+                        <a href="/customer/services" class="btn btn-primary">Book a Service</a>
                     </div>
                 </div>
             </div>
@@ -70,8 +67,8 @@
                 <div class="card">
                     <div class="card-body">
                         <h5 class="card-title">Completed Services</h5>
-                        <p class="card-text">${completedBookingsCount}</p>
-                        <a href="<c:url value='/customer/bookings?status=completed'/>" class="btn btn-primary">View History</a>
+                        <p class="card-text" th:text="${completedBookingsCount}">0</p>
+                        <a href="/customer/bookings?status=completed" class="btn btn-primary">View History</a>
                     </div>
                 </div>
             </div>
@@ -91,26 +88,18 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <c:choose>
-                                <c:when test="${empty recentBookings}">
-                                    <tr>
-                                        <td colspan="4" class="text-center">No recent bookings</td>
-                                    </tr>
-                                </c:when>
-                                <c:otherwise>
-                                    <c:forEach items="${recentBookings}" var="booking">
-                                        <tr>
-                                            <td>${booking.bookingId}</td>
-                                            <td><fmt:formatDate value="${booking.bookingDate}" pattern="dd-MM-yyyy"/></td>
-                                            <td>${booking.status.statusName}</td>
-                                            <td>
-                                                <a href="<c:url value='/customer/bookings/${booking.bookingId}'/>" 
-                                                   class="btn btn-sm btn-info">View</a>
-                                            </td>
-                                        </tr>
-                                    </c:forEach>
-                                </c:otherwise>
-                            </c:choose>
+                            <tr th:if="${recentBookings == null || recentBookings.empty}">
+                                <td colspan="4" class="text-center">No recent bookings</td>
+                            </tr>
+                            <tr th:each="booking : ${recentBookings}">
+                                <td th:text="${booking.bookingId}">1</td>
+                                <td th:text="${#temporals.format(booking.bookingDate, 'dd-MM-yyyy')}">01-01-2024</td>
+                                <td th:text="${booking.status != null ? booking.status.statusName : ''}">Status</td>
+                                <td>
+                                    <a th:href="@{/customer/bookings/{id}(id=${booking.bookingId})}" 
+                                       class="btn btn-sm btn-info">View</a>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
