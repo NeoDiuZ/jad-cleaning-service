@@ -3,6 +3,8 @@ package sp.dit.jad.cleaning_service.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import sp.dit.jad.cleaning_service.model.*;
 import sp.dit.jad.cleaning_service.repository.*;
 import sp.dit.jad.cleaning_service.dto.BookingDTO;
@@ -10,7 +12,8 @@ import sp.dit.jad.cleaning_service.dto.BookingDTO;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
-import java.util.Optional;
+import java.util.Arrays;
+
 
 @Service
 public class BookingService {
@@ -38,6 +41,23 @@ public class BookingService {
             .orElseThrow(() -> new RuntimeException("Booking not found with id: " + id));
     }
     
+    public long getTotalBookingsCount() {
+        return bookingRepository.count();
+    }
+    
+    public long getActiveBookingsCount() {
+        return bookingRepository.countByStatus_StatusNameIn(Arrays.asList("Scheduled", "In Progress"));
+    }
+    
+    public List<Booking> getRecentBookings(int limit) {
+        PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "bookingDate"));
+        return bookingRepository.findAll(pageRequest).getContent();
+    }
+    
+    public List<Booking> getAllBookings() {
+        return bookingRepository.findAll(Sort.by(Sort.Direction.DESC, "bookingDate"));
+    }
+    
     public long countActiveBookingsByUser(User user) {
         return bookingRepository.countActiveBookingsByCustomer(user);
     }
@@ -49,6 +69,11 @@ public class BookingService {
     public List<Booking> getRecentBookingsByUser(User user, int limit) {
         List<Booking> bookings = bookingRepository.findRecentBookingsByCustomer(user);
         return bookings.size() > limit ? bookings.subList(0, limit) : bookings;
+    }
+    
+    
+    public List<Booking> getAllBookingsByUser(User user) {
+        return bookingRepository.findByCustomerOrderByBookingDateDesc(user);
     }
     
     @Transactional

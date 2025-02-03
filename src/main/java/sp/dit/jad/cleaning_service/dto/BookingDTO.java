@@ -25,5 +25,7 @@ public class BookingDTO {
     public void setServices(List<Long> services) { this.services = services; }
     
     public String getSpecialInstructions() { return specialInstructions; }
-    public void setSpecialInstructions(String specialInstructions) { this.specialInstructions = specialInstructions; }
+    public void setSpecialInstructions(String specialInstructions) { 
+        this.specialInstructions = specialInstructions; 
+    }
 }

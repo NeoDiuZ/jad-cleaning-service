@@ -70,8 +70,9 @@ public class SecurityConfig {
                 .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
+            	.requestMatchers("/", "/auth/**", "/auth/register-admin", "/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
                 .requestMatchers("/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .requestMatchers("/customer/**", "/cart/**").hasRole("CUSTOMER")
                 .anyRequest().authenticated()
             )

@@ -10,11 +10,11 @@ public class BookingDetail {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long detailId;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "booking_id", nullable = false)
     private Booking booking;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "service_id", nullable = false)
     private Service service;
     
@@ -46,7 +46,7 @@ public class BookingDetail {
     public BigDecimal getSubtotal() { return subtotal; }
     public void setSubtotal(BigDecimal subtotal) { this.subtotal = subtotal; }
     
-    // Convenience method to calculate subtotal
+    // Helper method to calculate subtotal
     public void calculateSubtotal() {
         if (quantity != null && unitPrice != null) {
             this.subtotal = unitPrice.multiply(new BigDecimal(quantity));

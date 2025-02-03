@@ -8,10 +8,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import sp.dit.jad.cleaning_service.service.UserService;
 import sp.dit.jad.cleaning_service.dto.UserRegistrationDTO;
+import sp.dit.jad.cleaning_service.dto.AdminRegistrationDTO;
 
 @Controller
 @RequestMapping("/auth")
 public class AuthController {
+    
+    private static final String ADMIN_REGISTRATION_CODE = "ADMIN123"; // In production, this should be in configuration
     
     @Autowired
     private UserService userService;
@@ -56,6 +59,37 @@ public class AuthController {
         } catch (Exception e) {
             model.addAttribute("error", e.getMessage());
             return "auth/register";
+        }
+    }
+
+    // Updated admin registration methods
+    @GetMapping("/register-admin")
+    public String showAdminRegistrationPage(Model model) {
+        model.addAttribute("user", new AdminRegistrationDTO());
+        return "auth/register-admin"; // Changed to auth directory
+    }
+    
+    @PostMapping("/register-admin")
+    public String registerAdmin(@ModelAttribute("user") AdminRegistrationDTO registrationDTO, 
+                              Model model) {
+        try {
+            // Validate admin registration code
+            if (!ADMIN_REGISTRATION_CODE.equals(registrationDTO.getAdminCode())) {
+                model.addAttribute("error", "Invalid admin registration code");
+                return "auth/register-admin";
+            }
+            
+            // Validate passwords match
+            if (!registrationDTO.getPassword().equals(registrationDTO.getConfirmPassword())) {
+                model.addAttribute("error", "Passwords do not match");
+                return "auth/register-admin";
+            }
+            
+            userService.registerNewAdmin(registrationDTO);
+            return "redirect:/auth/login?registered=true";
+        } catch (Exception e) {
+            model.addAttribute("error", e.getMessage());
+            return "auth/register-admin";
         }
     }
 

@@ -7,6 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import sp.dit.jad.cleaning_service.model.*;
 import sp.dit.jad.cleaning_service.repository.*;
 import sp.dit.jad.cleaning_service.dto.UserRegistrationDTO;
+import sp.dit.jad.cleaning_service.dto.AdminRegistrationDTO;
+
+import java.util.List;
 
 @Service
 public class UserService {
@@ -22,6 +25,14 @@ public class UserService {
     
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
+    
+    public long getCustomerCount() {
+        return userRepository.countByRole_RoleName("CUSTOMER");
+    }
+    
+    public List<User> getAllCustomers() {
+        return userRepository.findByRole_RoleName("CUSTOMER");
+    }
     
     @Transactional
     public void registerNewUser(UserRegistrationDTO registrationDTO) {
@@ -45,6 +56,54 @@ public class UserService {
         user.setStatus(activeStatus);
         
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void registerNewAdmin(AdminRegistrationDTO registrationDTO) {
+        if (userRepository.existsByEmail(registrationDTO.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+        
+        User admin = new User();
+        admin.setEmail(registrationDTO.getEmail());
+        admin.setPasswordHash(passwordEncoder.encode(registrationDTO.getPassword()));
+        
+        // Get ADMIN role
+        Role adminRole = roleRepository.findByRoleName("ADMIN")
+            .orElseThrow(() -> new RuntimeException("Admin role not found"));
+            
+        // Get ACTIVE status
+        Status activeStatus = statusRepository.findByStatusName("Active")
+            .orElseThrow(() -> new RuntimeException("Default status not found"));
+        
+        admin.setRole(adminRole);
+        admin.setStatus(activeStatus);
+        
+        userRepository.save(admin);
+    }
+    
+    @Transactional
+    public User registerNewAdmin(UserRegistrationDTO registrationDTO) {
+        if (userRepository.existsByEmail(registrationDTO.getEmail())) {
+            throw new RuntimeException("Email already exists");
+        }
+        
+        User admin = new User();
+        admin.setEmail(registrationDTO.getEmail());
+        admin.setPasswordHash(passwordEncoder.encode(registrationDTO.getPassword()));
+        
+        // Get ADMIN role
+        Role adminRole = roleRepository.findByRoleName("ADMIN")
+            .orElseThrow(() -> new RuntimeException("Admin role not found"));
+            
+        // Get ACTIVE status
+        Status activeStatus = statusRepository.findByStatusName("Active")
+            .orElseThrow(() -> new RuntimeException("Default status not found"));
+        
+        admin.setRole(adminRole);
+        admin.setStatus(activeStatus);
+        
+        return userRepository.save(admin);
     }
     
     public User findByEmail(String email) {

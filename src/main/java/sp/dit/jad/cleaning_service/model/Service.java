@@ -29,8 +29,7 @@ public class Service {
     
     private String imageUrl;
     
-    @Column(nullable = false)
-    private boolean isActive;
+    private boolean isActive = true;
     
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
