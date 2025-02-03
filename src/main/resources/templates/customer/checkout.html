@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Checkout - Cleaning Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Hidden form fields for CSRF -->
+    <meta id="_csrf" name="_csrf" th:content="${_csrf.token}"/>
+    <meta id="_csrf_header" name="_csrf_header" th:content="${_csrf.headerName}"/>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="#">Cleaning Service</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/customer/dashboard}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/customer/services}">Book Service</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/customer/bookings}">My Bookings</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" th:href="@{/customer/profile}">My Profile</a>
+                    </li>
+                </ul>
+                <div class="d-flex">
+                    <form th:action="@{/auth/logout}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <button class="btn btn-outline-light" type="submit">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-12">
+                <h2 class="mb-4">Checkout</h2>
+                
+                <!-- Empty Cart Message -->
+                <div th:if="${#lists.isEmpty(cartItems)}" class="alert alert-info">
+                    <p>Your cart is empty. <a th:href="@{/customer/services}" class="alert-link">Browse our services</a></p>
+                </div>
+                
+                <!-- Cart Contents -->
+                <div th:unless="${#lists.isEmpty(cartItems)}">
+                    <form th:action="@{/customer/bookings/new}" method="post" id="checkoutForm">
+                        <div class="row">
+                            <!-- Cart Items -->
+                            <div class="col-md-8">
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Cart Items</h5>
+                                        <div class="table-responsive">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th width="5%">
+                                                            <div class="form-check">
+                                                                <input class="form-check-input" type="checkbox" 
+                                                                       id="selectAll" checked>
+                                                                <label class="form-check-label" for="selectAll">
+                                                                    Select All
+                                                                </label>
+                                                            </div>
+                                                        </th>
+                                                        <th width="40%">Service</th>
+                                                        <th width="20%">Duration</th>
+                                                        <th width="20%">Price</th>
+                                                        <th width="15%">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    <tr th:each="item : ${cartItems}">
+                                                        <td>
+                                                            <div class="form-check">
+                                                                <input class="form-check-input service-checkbox" 
+                                                                       type="checkbox"
+                                                                       name="selectedServices"
+                                                                       th:value="${item.serviceId}"
+                                                                       th:data-price="${item.price}"
+                                                                       th:id="'service-' + ${item.serviceId}"
+                                                                       checked>
+                                                            </div>
+                                                        </td>
+                                                        <td>
+                                                            <span th:text="${item.serviceName}">Service Name</span>
+                                                        </td>
+                                                        <td th:text="${item.duration + ' hours'}">3 hours</td>
+                                                        <td>
+                                                            <span th:text="'$' + ${#numbers.formatDecimal(item.price, 1, 2)}">$100.00</span>
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" 
+                                                                    class="btn btn-sm btn-danger remove-item"
+                                                                    th:data-service-id="${item.serviceId}">
+                                                                Remove
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="d-flex gap-2 mb-4">
+                                    <a th:href="@{/customer/services}" class="btn btn-outline-primary">
+                                        Continue Shopping
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" id="clearCartBtn">
+                                        Clear Cart
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Order Summary -->
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Order Summary</h5>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>Subtotal</span>
+                                            <span id="subtotal">$0.00</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-2">
+                                            <span>GST (8%)</span>
+                                            <span id="gst">$0.00</span>
+                                        </div>
+                                        <hr>
+                                        <div class="d-flex justify-content-between mb-3">
+                                            <strong>Total</strong>
+                                            <strong id="total">$0.00</strong>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary w-100" id="proceedBtn">
+                                            Proceed to Booking
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+	    document.addEventListener('DOMContentLoaded', function() {
+	        const csrfToken = document.querySelector("meta[name='_csrf']").content;
+	        const csrfHeader = document.querySelector("meta[name='_csrf_header']").content;
+	        const selectAllCheckbox = document.getElementById('selectAll');
+	        const serviceCheckboxes = document.querySelectorAll('.service-checkbox');
+	        const checkoutForm = document.getElementById('checkoutForm');
+	
+	        // Update order summary function
+	        function updateOrderSummary() {
+	            let subtotal = 0;
+	            document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+	                if (checkbox.checked) {
+	                    subtotal += parseFloat(checkbox.dataset.price || 0);
+	                }
+	            });
+	
+	            const gst = subtotal * 0.08;
+	            const total = subtotal + gst;
+	
+	            document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+	            document.getElementById('gst').textContent = '$' + gst.toFixed(2);
+	            document.getElementById('total').textContent = '$' + total.toFixed(2);
+	
+	            // Update proceed button state
+	            const proceedBtn = document.getElementById('proceedBtn');
+	            proceedBtn.disabled = !Array.from(document.querySelectorAll('.service-checkbox'))
+	                .some(cb => cb.checked);
+	        }
+	
+	        // Select All functionality
+	        if (selectAllCheckbox) {
+	            selectAllCheckbox.addEventListener('change', function() {
+	                const isChecked = this.checked;
+	                document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+	                    checkbox.checked = isChecked;
+	                });
+	                updateOrderSummary();
+	            });
+	        }
+	
+	        // Individual checkbox changes
+	        document.querySelectorAll('.service-checkbox').forEach(checkbox => {
+	            checkbox.addEventListener('change', function() {
+	                updateOrderSummary();
+	                // Update select all checkbox state
+	                if (selectAllCheckbox) {
+	                    const allCheckboxes = document.querySelectorAll('.service-checkbox');
+	                    selectAllCheckbox.checked = Array.from(allCheckboxes).every(cb => cb.checked);
+	                    selectAllCheckbox.indeterminate = 
+	                        Array.from(allCheckboxes).some(cb => cb.checked) && 
+	                        !Array.from(allCheckboxes).every(cb => cb.checked);
+	                }
+	            });
+	        });
+	
+	        // Remove individual items
+	        document.querySelectorAll('.remove-item').forEach(button => {
+	            button.addEventListener('click', async function() {
+	                const serviceId = this.dataset.serviceId;
+	                try {
+	                    const response = await fetch('/cart/remove', {
+	                        method: 'POST',
+	                        headers: {
+	                            'Content-Type': 'application/x-www-form-urlencoded',
+	                            [csrfHeader]: csrfToken
+	                        },
+	                        body: `serviceId=${serviceId}`
+	                    });
+	
+	                    if (response.ok) {
+	                        const row = this.closest('tr');
+	                        row.remove();
+	                        
+	                        if (document.querySelectorAll('.service-checkbox').length === 0) {
+	                            location.reload();
+	                        } else {
+	                            // Update select all checkbox state
+	                            if (selectAllCheckbox) {
+	                                const allCheckboxes = document.querySelectorAll('.service-checkbox');
+	                                selectAllCheckbox.checked = Array.from(allCheckboxes).every(cb => cb.checked);
+	                                selectAllCheckbox.indeterminate = 
+	                                    Array.from(allCheckboxes).some(cb => cb.checked) && 
+	                                    !Array.from(allCheckboxes).every(cb => cb.checked);
+	                            }
+	                            updateOrderSummary();
+	                        }
+	                    } else {
+	                        throw new Error('Failed to remove item');
+	                    }
+	                } catch (error) {
+	                    console.error('Error:', error);
+	                    alert('Error removing item: ' + error.message);
+	                }
+	            });
+	        });
+	
+	        // Clear cart functionality
+	        const clearCartBtn = document.getElementById('clearCartBtn');
+	        if (clearCartBtn) {
+	            clearCartBtn.addEventListener('click', async function() {
+	                if (confirm('Are you sure you want to clear your cart?')) {
+	                    try {
+	                        const response = await fetch('/cart/clear', {
+	                            method: 'POST',
+	                            headers: {
+	                                [csrfHeader]: csrfToken
+	                            }
+	                        });
+	
+	                        if (response.ok) {
+	                            location.reload();
+	                        } else {
+	                            throw new Error('Failed to clear cart');
+	                        }
+	                    } catch (error) {
+	                        alert('Error clearing cart: ' + error.message);
+	                    }
+	                }
+	            });
+	        }
+	
+	        // Form submission validation
+	        if (checkoutForm) {
+	            checkoutForm.addEventListener('submit', function(e) {
+	                const selectedServices = Array.from(document.querySelectorAll('.service-checkbox'))
+	                    .filter(cb => cb.checked);
+	
+	                if (selectedServices.length === 0) {
+	                    e.preventDefault();
+	                    alert('Please select at least one service to proceed.');
+	                }
+	            });
+	        }
+	
+	        // Initial calculation
+	        updateOrderSummary();
+	    });
+	</script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

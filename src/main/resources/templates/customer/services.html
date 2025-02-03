@@ -2,8 +2,11 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Available Services</title>
+    <title>Available Services - Cleaning Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <meta name="_csrf" th:content="${_csrf.token}"/>
+    <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
@@ -15,18 +18,24 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/customer/dashboard">Dashboard</a>
+                        <a class="nav-link" th:href="@{/customer/dashboard}">Dashboard</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/customer/services">Book Service</a>
+                        <a class="nav-link active" th:href="@{/customer/services}">Book Service</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/customer/bookings">My Bookings</a>
+                        <a class="nav-link" th:href="@{/customer/bookings}">My Bookings</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/customer/profile">My Profile</a>
+                        <a class="nav-link" th:href="@{/customer/profile}">My Profile</a>
                     </li>
                 </ul>
+                <div class="d-flex">
+                    <form th:action="@{/auth/logout}" method="post">
+                        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                        <button class="btn btn-outline-light" type="submit">Logout</button>
+                    </form>
+                </div>
             </div>
         </div>
     </nav>
@@ -41,7 +50,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Categories</h5>
                         <div class="list-group">
-                            <a href="#" class="list-group-item list-group-item-action active" 
+                            <a href="#" class="list-group-item list-group-item-action" 
                                th:each="category : ${categories}"
                                th:text="${category.name}"
                                th:classappend="${category.categoryId == selectedCategory ? 'active' : ''}">
@@ -87,7 +96,7 @@
         <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
             <div class="card" style="width: 300px;">
                 <div class="card-header">
-                    Selected Services
+                    <h5 class="card-title mb-0">Selected Services</h5>
                 </div>
                 <div class="card-body">
                     <div id="selectedServices">
@@ -95,7 +104,7 @@
                     </div>
                     <hr>
                     <div class="d-flex justify-content-between">
-                        <strong>Total:</strong>
+                        <strong>Subtotal:</strong>
                         <span id="totalAmount">$0.00</span>
                     </div>
                     <div class="d-flex justify-content-between">
@@ -107,7 +116,7 @@
                         <strong id="grandTotal">$0.00</strong>
                     </div>
                     <button class="btn btn-success w-100 mt-3" onclick="proceedToBooking()" id="proceedBtn" disabled>
-                        Proceed to Booking
+                        Proceed to Checkout
                     </button>
                 </div>
             </div>
@@ -116,6 +125,48 @@
 
     <script>
         let selectedServices = new Map();
+        const csrfToken = document.querySelector("meta[name='_csrf']").content;
+        const csrfHeader = document.querySelector("meta[name='_csrf_header']").content;
+        
+        async function loadCartData() {
+            try {
+                const response = await fetch('/cart/items', {
+                    headers: {
+                        [csrfHeader]: csrfToken
+                    }
+                });
+                
+                if (response.ok) {
+                    const cartItems = await response.json();
+                    selectedServices.clear(); // Clear existing selections
+                    
+                    // Update all buttons to default state
+                    document.querySelectorAll('[data-service-id]').forEach(button => {
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-primary');
+                        button.textContent = 'Select Service';
+                    });
+                    
+                    // Update buttons and services map based on cart data
+                    cartItems.forEach(item => {
+                        const button = document.querySelector(`[data-service-id="${item.serviceId}"]`);
+                        if (button) {
+                            selectedServices.set(item.serviceId, {
+                                name: item.serviceName,
+                                price: parseFloat(item.price)
+                            });
+                            button.classList.remove('btn-primary');
+                            button.classList.add('btn-danger');
+                            button.textContent = 'Remove Service';
+                        }
+                    });
+                    
+                    updateBookingSummary();
+                }
+            } catch (error) {
+                console.error('Error loading cart:', error);
+            }
+        }
         
         async function addToBooking(button) {
             const serviceId = button.dataset.serviceId;
@@ -129,18 +180,15 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
+                            [csrfHeader]: csrfToken
                         },
                         body: `serviceId=${serviceId}`
                     });
                     
                     if (response.ok) {
-                        selectedServices.delete(serviceId);
-                        button.classList.remove('btn-danger');
-                        button.classList.add('btn-primary');
-                        button.textContent = 'Select Service';
+                        await loadCartData(); // Reload cart data after removal
                     } else {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to remove service');
+                        throw new Error('Failed to remove from cart');
                     }
                 } else {
                     // Add to cart
@@ -148,29 +196,20 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
+                            [csrfHeader]: csrfToken
                         },
                         body: `serviceId=${serviceId}`
                     });
                     
                     if (response.ok) {
-                        const cartItem = await response.json();
-                        selectedServices.set(serviceId, {
-                            name: serviceName,
-                            price: price
-                        });
-                        button.classList.remove('btn-primary');
-                        button.classList.add('btn-danger');
-                        button.textContent = 'Remove Service';
+                        await loadCartData(); // Reload cart data after addition
                     } else {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error || 'Failed to add service');
+                        throw new Error('Failed to add to cart');
                     }
                 }
-                
-                updateBookingSummary();
             } catch (error) {
                 console.error('Error updating cart:', error);
-                alert(error.message || 'An error occurred while updating your cart. Please try again.');
+                alert('An error occurred while updating your cart. Please try again.');
             }
         }
         
@@ -202,54 +241,14 @@
             proceedBtn.disabled = selectedServices.size === 0;
         }
         
-        async function proceedToBooking() {
-            const serviceIds = Array.from(selectedServices.keys());
-            
-            // Create a form to submit the selected services
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '/customer/bookings/new';
-            
-            // Add selected services as hidden inputs
-            serviceIds.forEach(id => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'services';
-                input.value = id;
-                form.appendChild(input);
-            });
-            
-            document.body.appendChild(form);
-            form.submit();
+        function proceedToBooking() {
+            window.location.href = '/cart/checkout';
         }
 
-        // Load cart items when page loads
-        window.addEventListener('DOMContentLoaded', async () => {
-		    try {
-		        const response = await fetch('/cart/items');
-		        if (response.ok) {
-		            const cartItems = await response.json();
-		            cartItems.forEach(item => {
-		                const button = document.querySelector(`[data-service-id="${item.serviceId}"]`);
-		                if (button) {
-		                    selectedServices.set(item.serviceId, {
-		                        name: item.serviceName,
-		                        price: parseFloat(item.price)
-		                    });
-		                    button.classList.remove('btn-primary');
-		                    button.classList.add('btn-danger');
-		                    button.textContent = 'Remove Service';
-		                }
-		            });
-		            updateBookingSummary();
-		        } else {
-		            const errorData = await response.json();
-		            console.error('Error from server:', errorData);
-		        }
-		    } catch (error) {
-		        console.error('Error loading cart:', error);
-		    }
-		});
+        // Initialize the page
+        window.addEventListener('DOMContentLoaded', () => {
+            loadCartData();
+        });
     </script>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

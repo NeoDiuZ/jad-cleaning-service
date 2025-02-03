@@ -8,6 +8,7 @@ public class CartItemDTO {
     private String serviceName;
     private BigDecimal price;
     private Integer quantity;
+    private Integer duration; 
 
     // Getters and Setters
     public Long getServiceId() {
@@ -40,5 +41,13 @@ public class CartItemDTO {
 
     public void setQuantity(Integer quantity) {
         this.quantity = quantity;
+    }
+
+    public Integer getDuration() {
+        return duration;
+    }
+
+    public void setDuration(Integer duration) {
+        this.duration = duration;
     }
 }
